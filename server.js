@@ -1,6 +1,6 @@
 const express=require("express"), path=require("path"), Database=require("better-sqlite3"), jwt=require("jsonwebtoken"), QRCode=require("qrcode");
 const app=express(), PORT=process.env.PORT||3000, SECRET=process.env.JWT_SECRET||"change-me";
-app.use(express.json()); app.use(express.static(path.join(__dirname,"public")));
+app.use(express.json()); app.use(express.static((__dirname));
 const db=new Database(path.join(__dirname,"data.sqlite"));
 db.exec(`CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT,email TEXT UNIQUE,role TEXT);
 CREATE TABLE IF NOT EXISTS sessions(id INTEGER PRIMARY KEY AUTOINCREMENT,course TEXT,lat REAL,lng REAL,radius REAL,token TEXT,expires INTEGER,active INTEGER DEFAULT 1,created_at TEXT);
@@ -21,5 +21,5 @@ app.get("/api/sessions/:id/qr",async(req,res)=>{const s=db.prepare("SELECT id,to
 app.post("/api/attendance",auth,(req,res)=>{if(req.user.role!=="Student")return res.status(403).json({error:"Student only"});const {sessionId,token,lat,lng}=req.body,s=db.prepare("SELECT * FROM sessions WHERE id=? AND active=1").get(sessionId);if(!s||s.expires<Date.now()||s.token!==token)return res.status(400).json({error:"QR expired or invalid"});const dist=distance(s.lat,s.lng,lat,lng);if(dist>s.radius)return res.status(400).json({error:`Outside geofence (${Math.round(dist)}m away)`});try{db.prepare("INSERT INTO attendance(session_id,user_id,lat,lng,distance,created_at) VALUES (?,?,?,?,?,?)").run(s.id,req.user.id,lat,lng,dist,new Date().toISOString());res.json({ok:true,distance:Math.round(dist)})}catch(e){res.status(409).json({error:"Attendance already marked"})}});
 app.get("/api/attendance",auth,(req,res)=>{const q=`SELECT a.id,u.name,u.email,s.course,a.distance,a.created_at FROM attendance a JOIN users u ON u.id=a.user_id JOIN sessions s ON s.id=a.session_id ORDER BY a.id DESC`;res.json(db.prepare(q).all())});
 app.post("/api/sessions/:id/stop",auth,(req,res)=>{if(!["Admin","Faculty"].includes(req.user.role))return res.status(403).json({error:"Not allowed"});db.prepare("UPDATE sessions SET active=0 WHERE id=?").run(req.params.id);res.json({ok:true})});
-app.get("*",(req,res)=>res.sendFile(path.join(__dirname,"public","index.html")));
+app.get("/{*splat}",(req,res)=>res.sendFile(path.join(__dirname,"index.html")));
 app.listen(PORT,()=>console.log("GeoAttend running on "+PORT));
