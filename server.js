@@ -47,32 +47,41 @@ CREATE TABLE IF NOT EXISTS attendance (
 );
 `);
 
-const count = db.prepare("SELECT COUNT(*) AS c FROM users").get().c;
+// ---------- Demo Users ----------
 
-if (count === 0) {
-  const insert = db.prepare(
-    "INSERT INTO users (name,email,role,course) VALUES (?,?,?,?)"
-  );
+const demoUsers = [
+  {
+    name: "Admin User",
+    email: "admin@geoattend.demo",
+    role: "Admin",
+    course: "Administration"
+  },
+  {
+    name: "Dr. Priya",
+    email: "faculty@geoattend.demo",
+    role: "Faculty",
+    course: "CSE"
+  },
+  {
+    name: "Rahul Kumar",
+    email: "student@geoattend.demo",
+    role: "Student",
+    course: "CSE"
+  }
+];
 
-  insert.run(
-    "Admin User",
-    "admin@geoattend.demo",
-    "Admin",
-    "Administration"
-  );
+const insertDemoUser = db.prepare(`
+  INSERT OR IGNORE INTO users
+  (name, email, role, course)
+  VALUES (?, ?, ?, ?)
+`);
 
-  insert.run(
-    "Dr. Priya",
-    "faculty@geoattend.demo",
-    "Faculty",
-    "CSE"
-  );
-
-  insert.run(
-    "Rahul Kumar",
-    "student@geoattend.demo",
-    "Student",
-    "CSE"
+for (const user of demoUsers) {
+  insertDemoUser.run(
+    user.name,
+    user.email,
+    user.role,
+    user.course
   );
 }
 
