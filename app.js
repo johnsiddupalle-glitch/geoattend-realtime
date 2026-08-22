@@ -8,10 +8,17 @@ let S = {
 
 const $ = (x) => document.getElementById(x);
 
+
+/* =========================
+   API HELPER
+========================= */
+
 async function api(url, opt = {}) {
   opt.headers = {
     ...(opt.headers || {}),
-    ...(S.token ? { Authorization: "Bearer " + S.token } : {})
+    ...(S.token
+      ? { Authorization: "Bearer " + S.token }
+      : {})
   };
 
   if (opt.body && typeof opt.body !== "string") {
@@ -23,36 +30,72 @@ async function api(url, opt = {}) {
   const text = await r.text();
 
   let data;
+
   try {
     data = JSON.parse(text);
   } catch {
-    data = { error: text };
+    data = {
+      error: text
+    };
   }
 
-  if (!r.ok) throw new Error(data.error || "Request failed");
+  if (!r.ok) {
+    throw new Error(
+      data.error || "Request failed"
+    );
+  }
+
   return data;
 }
+
+
+/* =========================
+   TOAST
+========================= */
 
 function toast(message) {
   alert(message);
 }
 
+
+/* =========================
+   LOGIN PAGE
+========================= */
+
 function login() {
   document.body.innerHTML = `
     <div class="login">
+
       <div class="box">
-        <div class="brand">GeoAttend</div>
-        <p class="muted">Real-time QR Attendance + Geofencing</p>
 
-        <div class="roles">
-          <button class="${S.role === "Admin" ? "active" : ""}"
-            onclick="S.role='Admin'; login()">Admin</button>
-
-          <button class="${S.role === "Faculty" ? "active" : ""}"
-            onclick="S.role='Faculty'; login()">Faculty</button>
+        <div class="brand">
+          GeoAttend
         </div>
 
-        <label>Email</label>
+        <p class="muted">
+          Real-time QR Attendance + Geofencing
+        </p>
+
+        <div class="roles">
+
+          <button
+            class="${S.role === "Admin" ? "active" : ""}"
+            onclick="S.role='Admin'; login()">
+            Admin
+          </button>
+
+          <button
+            class="${S.role === "Faculty" ? "active" : ""}"
+            onclick="S.role='Faculty'; login()">
+            Faculty
+          </button>
+
+        </div>
+
+        <label>
+          Email
+        </label>
+
         <input
           id="email"
           type="email"
@@ -60,17 +103,27 @@ function login() {
           autocomplete="email"
         />
 
-        <button class="primary" onclick="sendOtp()">
+        <button
+          class="primary"
+          onclick="sendOtp()">
           Send OTP
         </button>
 
         <p class="muted">
-          Demo mode OTP: <b>123456</b>
+          Demo mode OTP:
+          <b>123456</b>
         </p>
+
       </div>
+
     </div>
   `;
 }
+
+
+/* =========================
+   SEND OTP
+========================= */
 
 async function sendOtp() {
   const email = $("email").value.trim();
@@ -81,8 +134,10 @@ async function sendOtp() {
   }
 
   try {
+
     await api("/api/auth/send-otp", {
       method: "POST",
+
       body: {
         email,
         role: S.role
@@ -92,12 +147,19 @@ async function sendOtp() {
     S.otpEmail = email;
 
     document.querySelector(".box").innerHTML = `
-      <div class="brand">GeoAttend</div>
+      <div class="brand">
+        GeoAttend
+      </div>
+
       <p class="muted">
-        OTP sent to <b>${email}</b>
+        OTP sent to
+        <b>${email}</b>
       </p>
 
-      <label>Enter OTP</label>
+      <label>
+        Enter OTP
+      </label>
+
       <input
         id="otp"
         type="text"
@@ -106,24 +168,38 @@ async function sendOtp() {
         autocomplete="one-time-code"
       />
 
-      <button class="primary" onclick="verifyOtp()">
+      <button
+        class="primary"
+        onclick="verifyOtp()">
         Verify OTP
       </button>
 
-      <button class="secondary" onclick="login()">
+      <button
+        class="secondary"
+        onclick="login()">
         Change Email
       </button>
 
       <p class="muted">
-        Demo mode OTP: <b>123456</b>
+        Demo mode OTP:
+        <b>123456</b>
       </p>
     `;
+
   } catch (e) {
+
     toast(e.message);
+
   }
 }
 
+
+/* =========================
+   VERIFY OTP
+========================= */
+
 async function verifyOtp() {
+
   const otp = $("otp").value.trim();
 
   if (!otp) {
@@ -132,14 +208,19 @@ async function verifyOtp() {
   }
 
   try {
-    const data = await api("/api/auth/verify-otp", {
-      method: "POST",
-      body: {
-        email: S.otpEmail,
-        role: S.role,
-        otp
+
+    const data = await api(
+      "/api/auth/verify-otp",
+      {
+        method: "POST",
+
+        body: {
+          email: S.otpEmail,
+          role: S.role,
+          otp
+        }
       }
-    });
+    );
 
     S.token = data.token;
     S.user = data.user;
@@ -150,12 +231,21 @@ async function verifyOtp() {
     localStorage.role = S.role;
 
     render();
+
   } catch (e) {
+
     toast(e.message);
+
   }
 }
 
+
+/* =========================
+   LOGOUT
+========================= */
+
 function logout() {
+
   localStorage.clear();
 
   S = {
@@ -169,284 +259,622 @@ function logout() {
   login();
 }
 
+
+/* =========================
+   NAVIGATION
+========================= */
+
 function nav(page) {
+
   S.page = page;
+
   render();
 }
 
+
+/* =========================
+   MAIN RENDER
+========================= */
+
 async function render() {
+
   if (!S.token || !S.user) {
+
     login();
+
     return;
   }
 
   document.body.innerHTML = `
+
     <header class="top">
-      <div class="brand">GeoAttend</div>
+
+      <div class="brand">
+        GeoAttend
+      </div>
 
       <div class="user">
-        <span>${S.user.name || S.user.email}</span>
-        <span class="badge">${S.user.role}</span>
-        <button onclick="logout()">Logout</button>
+
+        <span>
+          ${S.user.name || S.user.email}
+        </span>
+
+        <span class="badge">
+          ${S.user.role}
+        </span>
+
+        <button onclick="logout()">
+          Logout
+        </button>
+
       </div>
+
     </header>
+
 
     <div class="layout">
 
       <aside class="sidebar">
-        <button onclick="nav('dashboard')">Dashboard</button>
-        <button onclick="nav('attendance')">Attendance</button>
+
+        <button
+          onclick="nav('dashboard')">
+          Dashboard
+        </button>
+
+        <button
+          onclick="nav('attendance')">
+          Attendance
+        </button>
+
 
         ${
           S.user.role === "Admin"
-            ? `<button onclick="nav('users')">Students & Faculty</button>`
+            ? `
+              <button
+                onclick="nav('users')">
+                Students & Faculty
+              </button>
+            `
             : ""
         }
+
 
         ${
-          ["Admin", "Faculty"].includes(S.user.role)
-            ? `<button onclick="nav('session')">Create QR Session</button>`
+          ["Admin", "Faculty"].includes(
+            S.user.role
+          )
+            ? `
+              <button
+                onclick="nav('session')">
+                Create QR Session
+              </button>
+            `
             : ""
         }
+
       </aside>
 
-      <main class="content" id="main"></main>
+
+      <main
+        class="content"
+        id="main">
+      </main>
+
     </div>
   `;
 
   page();
 }
 
+
+/* =========================
+   PAGE ROUTER
+========================= */
+
 async function page() {
+
   const main = $("main");
 
+
+  /* =====================
+     DASHBOARD
+  ===================== */
+
   if (S.page === "dashboard") {
+
     main.innerHTML = `
-      <h1>Welcome, ${S.user.name || "User"} 👋</h1>
+
+      <h1>
+        Welcome,
+        ${S.user.name || "User"} 👋
+      </h1>
 
       <div class="cards">
-        <div class="card">
-          <h3>Role</h3>
-          <strong>${S.user.role}</strong>
-        </div>
 
         <div class="card">
-          <h3>Email</h3>
-          <strong>${S.user.email}</strong>
+
+          <h3>
+            Role
+          </h3>
+
+          <strong>
+            ${S.user.role}
+          </strong>
+
         </div>
 
+
         <div class="card">
-          <h3>System</h3>
-          <strong>QR + Geofencing</strong>
+
+          <h3>
+            Email
+          </h3>
+
+          <strong>
+            ${S.user.email}
+          </strong>
+
         </div>
+
+
+        <div class="card">
+
+          <h3>
+            System
+          </h3>
+
+          <strong>
+            QR + Geofencing
+          </strong>
+
+        </div>
+
       </div>
     `;
+
     return;
   }
 
+
+  /* =====================
+     ATTENDANCE
+  ===================== */
+
   if (S.page === "attendance") {
+
     try {
-      const rows = await api("/api/attendance");
+
+      const rows =
+        await api("/api/attendance");
 
       main.innerHTML = `
-        <h1>Attendance</h1>
+
+        <h1>
+          Attendance
+        </h1>
 
         <div class="table-wrap">
+
           <table>
+
             <thead>
+
               <tr>
-                <th>Student</th>
-                <th>Course</th>
-                <th>Distance</th>
-                <th>Date & Time</th>
+
+                <th>
+                  Student
+                </th>
+
+                <th>
+                  Course
+                </th>
+
+                <th>
+                  Distance
+                </th>
+
+                <th>
+                  Date & Time
+                </th>
+
               </tr>
+
             </thead>
 
+
             <tbody>
+
               ${
                 rows.map(r => `
+
                   <tr>
-                    <td>${r.name || "-"}</td>
-                    <td>${r.course || "-"}</td>
-                    <td>${r.distance ? r.distance + " m" : "-"}</td>
-                    <td>${r.created_at || "-"}</td>
+
+                    <td>
+                      ${r.name || "-"}
+                    </td>
+
+                    <td>
+                      ${r.course || "-"}
+                    </td>
+
+                    <td>
+                      ${
+                        r.distance
+                          ? r.distance + " m"
+                          : "-"
+                      }
+                    </td>
+
+                    <td>
+                      ${r.created_at || "-"}
+                    </td>
+
                   </tr>
+
                 `).join("")
               }
+
             </tbody>
+
           </table>
+
         </div>
       `;
+
     } catch (e) {
-      main.innerHTML = `<div class="card">${e.message}</div>`;
+
+      main.innerHTML = `
+        <div class="card">
+          ${e.message}
+        </div>
+      `;
     }
 
     return;
   }
 
+
+  /* =====================
+     USERS
+  ===================== */
+
   if (S.page === "users") {
+
     await usersPage();
+
     return;
   }
 
+
+  /* =====================
+     QR SESSION
+  ===================== */
+
   if (S.page === "session") {
+
     sessionPage();
+
     return;
   }
 }
 
+
+/* =========================
+   USERS PAGE
+========================= */
+
 async function usersPage() {
+
   const main = $("main");
 
   try {
-    const users = await api("/api/users");
+
+    const users =
+      await api("/api/users");
 
     main.innerHTML = `
-      <h1>Students & Faculty</h1>
 
-      <button class="primary" onclick="addUser()">
+      <h1>
+        Students & Faculty
+      </h1>
+
+      <button
+        class="primary"
+        onclick="addUser()">
         + Add User
       </button>
 
+
       <div class="table-wrap">
+
         <table>
+
           <thead>
+
             <tr>
-              <th>Name</th>
-              <th>Email</th>
-              <th>Role</th>
-              <th>Action</th>
+
+              <th>
+                Name
+              </th>
+
+              <th>
+                Email
+              </th>
+
+              <th>
+                Role
+              </th>
+
+              <th>
+                Action
+              </th>
+
             </tr>
+
           </thead>
 
+
           <tbody>
+
             ${
               users.map(u => `
+
                 <tr>
-                  <td>${u.name}</td>
-                  <td>${u.email}</td>
-                  <td>${u.role}</td>
+
                   <td>
+                    ${u.name}
+                  </td>
+
+                  <td>
+                    ${u.email}
+                  </td>
+
+                  <td>
+                    ${u.role}
+                  </td>
+
+                  <td>
+
                     ${
                       u.role !== "Admin"
-                        ? `<button onclick="delUser(${u.id})">Delete</button>`
+                        ? `
+                          <button
+                            onclick="delUser(${u.id})">
+                            Delete
+                          </button>
+                        `
                         : ""
                     }
+
                   </td>
+
                 </tr>
+
               `).join("")
             }
+
           </tbody>
+
         </table>
+
       </div>
     `;
+
   } catch (e) {
-    main.innerHTML = `<div class="card">${e.message}</div>`;
+
+    main.innerHTML = `
+      <div class="card">
+        ${e.message}
+      </div>
+    `;
   }
 }
 
+
+/* =========================
+   ADD USER
+========================= */
+
 async function addUser() {
+
   const name = prompt("Name");
+
   if (!name) return;
 
+
   const email = prompt("Email");
+
   if (!email) return;
 
-  const role = prompt("Role: Student or Faculty", "Student");
+
+  const role = prompt(
+    "Role: Student or Faculty",
+    "Student"
+  );
+
   if (!role) return;
 
+
   try {
+
     await api("/api/users", {
+
       method: "POST",
+
       body: {
         name,
         email,
         role
       }
+
     });
 
-    toast("User added successfully");
+    toast(
+      "User added successfully"
+    );
+
     usersPage();
+
   } catch (e) {
+
     toast(e.message);
+
   }
 }
+
+
+/* =========================
+   DELETE USER
+========================= */
 
 async function delUser(id) {
-  if (!confirm("Delete this user?")) return;
+
+  if (!confirm("Delete this user?")) {
+    return;
+  }
 
   try {
-    await api("/api/users/" + id, {
-      method: "DELETE"
-    });
+
+    await api(
+      "/api/users/" + id,
+      {
+        method: "DELETE"
+      }
+    );
 
     toast("User deleted");
+
     usersPage();
+
   } catch (e) {
+
     toast(e.message);
+
   }
 }
 
+
+/* =========================
+   QR SESSION PAGE
+========================= */
+
 function sessionPage() {
+
   $("main").innerHTML = `
-    <h1>Create QR Session</h1>
+
+    <h1>
+      Create QR Session
+    </h1>
 
     <div class="card">
-      <label>Course / Class Name</label>
+
+      <label>
+        Course / Class Name
+      </label>
 
       <input
         id="course"
         placeholder="Example: CSE-A Data Structures"
       />
 
-      <button class="primary" onclick="startSession()">
+      <button
+        class="primary"
+        onclick="startSession()">
         Start QR Session
       </button>
+
     </div>
   `;
 }
+
+
+/* =========================
+   START QR SESSION
+========================= */
+
 async function startSession() {
-  const course = $("course").value.trim();
+
+  const course =
+    $("course").value.trim();
+
 
   if (!course) {
-    toast("Enter course name");
+
+    toast(
+      "Enter course name"
+    );
+
     return;
   }
+
 
   if (!navigator.geolocation) {
-    toast("Geolocation is not supported");
+
+    toast(
+      "Geolocation is not supported"
+    );
+
     return;
   }
 
+
   navigator.geolocation.getCurrentPosition(
+
     async pos => {
+
       try {
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
 
-        const data = await api("/api/sessions", {
-          method: "POST",
-          body: {
-            course,
-            lat,
-            lng,
-            radius: 100
-          }
-        });
+        const lat =
+          pos.coords.latitude;
 
-        // QR endpoint from the backend
-        const qrUrl = `/api/sessions/${data.id}/qr`;
+        const lng =
+          pos.coords.longitude;
+
+
+        const data =
+          await api(
+            "/api/sessions",
+            {
+              method: "POST",
+
+              body: {
+                course,
+                lat,
+                lng,
+                radius: 100
+              }
+            }
+          );
+
+
+        /*
+          Backend QR endpoint
+        */
+
+        const qrUrl =
+          `/api/sessions/${data.id}/qr`;
+
 
         $("main").innerHTML = `
-          <h1>QR Session Active</h1>
+
+          <h1>
+            QR Session Active
+          </h1>
+
 
           <div class="card center">
-            <h2>${course}</h2>
+
+            <h2>
+              ${course}
+            </h2>
+
 
             <div class="qr">
+
               <img
                 src="${qrUrl}"
                 alt="Attendance QR Code"
+
                 style="
                   width:280px;
                   height:280px;
@@ -457,55 +885,98 @@ async function startSession() {
                   padding:12px;
                   border-radius:12px;
                 "
-                onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
+
+                onerror="
+                  this.style.display='none';
+                  this.nextElementSibling.style.display='block';
+                "
               />
 
-              <div style="display:none;color:#dc2626;">
+
+              <div
+                style="
+                  display:none;
+                  color:#dc2626;
+                ">
+
                 QR code could not be loaded.
+
               </div>
+
             </div>
 
+
             <p>
+
               Students can scan this QR code
               inside the geofence.
+
             </p>
+
 
             <button
               class="secondary"
               onclick="stopSession(${data.id})">
+
               Stop Session
+
             </button>
+
           </div>
         `;
+
       } catch (e) {
+
         toast(e.message);
+
       }
+
     },
-    () => toast("Please allow location access")
+
+
+    () => {
+
+      toast(
+        "Please allow location access"
+      );
+
+    }
+
   );
 }
-            </button>
-          </div>
-        `;
-      } catch (e) {
-        toast(e.message);
-      }
-    },
-    () => toast("Please allow location access")
-  );
-}
+
+
+/* =========================
+   STOP QR SESSION
+========================= */
 
 async function stopSession(id) {
-  try {
-    await api("/api/sessions/" + id + "/stop", {
-      method: "POST"
-    });
 
-    toast("Session stopped");
+  try {
+
+    await api(
+      "/api/sessions/" + id + "/stop",
+      {
+        method: "POST"
+      }
+    );
+
+    toast(
+      "Session stopped"
+    );
+
     nav("dashboard");
+
   } catch (e) {
+
     toast(e.message);
+
   }
 }
+
+
+/* =========================
+   START APP
+========================= */
 
 render();
