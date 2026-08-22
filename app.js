@@ -405,7 +405,6 @@ function sessionPage() {
     </div>
   `;
 }
-
 async function startSession() {
   const course = $("course").value.trim();
 
@@ -435,6 +434,9 @@ async function startSession() {
           }
         });
 
+        // QR endpoint from the backend
+        const qrUrl = `/api/sessions/${data.id}/qr`;
+
         $("main").innerHTML = `
           <h1>QR Session Active</h1>
 
@@ -443,9 +445,24 @@ async function startSession() {
 
             <div class="qr">
               <img
-                src="${data.qr || data.qrCode || ""}"
-                alt="QR Code"
+                src="${qrUrl}"
+                alt="Attendance QR Code"
+                style="
+                  width:280px;
+                  height:280px;
+                  object-fit:contain;
+                  display:block;
+                  margin:20px auto;
+                  background:#fff;
+                  padding:12px;
+                  border-radius:12px;
+                "
+                onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
               />
+
+              <div style="display:none;color:#dc2626;">
+                QR code could not be loaded.
+              </div>
             </div>
 
             <p>
@@ -453,9 +470,20 @@ async function startSession() {
               inside the geofence.
             </p>
 
-            <button class="secondary"
+            <button
+              class="secondary"
               onclick="stopSession(${data.id})">
               Stop Session
+            </button>
+          </div>
+        `;
+      } catch (e) {
+        toast(e.message);
+      }
+    },
+    () => toast("Please allow location access")
+  );
+}
             </button>
           </div>
         `;
